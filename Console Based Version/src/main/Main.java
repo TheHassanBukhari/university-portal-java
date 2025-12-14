@@ -15,7 +15,7 @@ public class Main {
     static DataStore<Course> courseStore = new DataStore<>();
 
     public static void main(String[] args) {
-        loadData(); // Load existing data at line 54
+        loadData(); // Load existing data at line 54 
 
         boolean running = true;
         while (running) {
