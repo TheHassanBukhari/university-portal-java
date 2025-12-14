@@ -77,7 +77,7 @@ public class MainGUI extends JFrame {
             Student.totalStudents = students.getAll().size();
         }
         
-        // Load courses
+        // Load courses 
         ArrayList<Course> loadedCourses = (ArrayList<Course>) courseStore.loadFromFile("data/courses.dat");
         if (loadedCourses != null) {
             for (Course c : loadedCourses) {
