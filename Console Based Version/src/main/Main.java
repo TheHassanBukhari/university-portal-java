@@ -57,6 +57,8 @@ public class Main {
             for (Student s : loadedStudents) {
                 students.add(s);
             }
+            // UPDATE THE STATIC COUNTER
+            Student.totalStudents = students.getAll().size();
         }
 
         ArrayList<Course> loadedCourses = (ArrayList<Course>) courseStore.loadFromFile("data//courses.dat");
@@ -65,6 +67,8 @@ public class Main {
                 courses.add(c);
             }
         }
+        // UPDATE THE STATIC COUNTER
+        Course.totalCourses = courses.getAll().size();
     }
 
     public static void saveData() {

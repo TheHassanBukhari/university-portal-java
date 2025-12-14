@@ -73,6 +73,8 @@ public class MainGUI extends JFrame {
             for (Student s : loadedStudents) {
                 students.add(s);
             }
+            // UPDATE THE STATIC COUNTER
+            Student.totalStudents = students.getAll().size();
         }
         
         // Load courses
@@ -81,6 +83,8 @@ public class MainGUI extends JFrame {
             for (Course c : loadedCourses) {
                 courses.add(c);
             }
+            // UPDATE THE STATIC COUNTER
+            Course.totalCourses = courses.getAll().size();
         }
     }
     
