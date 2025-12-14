@@ -1,0 +1,8 @@
+# make directory by the name of 'bin', if it exists then do not throw any error just ignore.
+mkdir -p bin
+
+# compile the files to directory bin (-d bin)
+javac -d bin src/models/*.java src/util/*.java src/interfaces/*.java src/main/*.java
+
+# run from classpath bin, main.Main, and find all classes from bin as well
+java -cp bin main.Main
