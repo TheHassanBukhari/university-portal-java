@@ -243,16 +243,17 @@ public class MainGUI extends JFrame {
         titleLabel.setFont(new Font("Arial", Font.BOLD, 20));
         adminPanel.add(titleLabel, BorderLayout.NORTH);
         
-        // Center panel with buttons
-        JPanel buttonPanel = new JPanel(new GridLayout(5, 2, 10, 10));
+        // Center panel with buttons - Updated to include all removal functionalities
+        JPanel buttonPanel = new JPanel(new GridLayout(6, 2, 10, 10));
         buttonPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
         
         String[] buttonLabels = {
-            "Add Student", "Add Course", 
+            "Add Student", "Remove Student",
+            "Add Course", "Remove Course",
             "View All Students", "View All Courses",
-            "Assign Course", "View Complaints",
-            "System Stats", "Save Data",
-            "Logout"
+            "Assign Course", "Remove Course from Student",
+            "View Complaints", "System Stats",
+            "Save Data", "Logout"
         };
         
         for (String label : buttonLabels) {
@@ -269,8 +270,14 @@ public class MainGUI extends JFrame {
             case "Add Student":
                 addStudentGUI();
                 break;
+            case "Remove Student":
+                removeStudentGUI();
+                break;
             case "Add Course":
                 addCourseGUI();
+                break;
+            case "Remove Course":
+                removeCourseGUI();
                 break;
             case "View All Students":
                 viewAllStudentsGUI();
@@ -280,6 +287,9 @@ public class MainGUI extends JFrame {
                 break;
             case "Assign Course":
                 assignCourseGUI();
+                break;
+            case "Remove Course from Student":
+                removeCourseFromStudentGUI();
                 break;
             case "View Complaints":
                 viewComplaintsGUI();
@@ -351,31 +361,77 @@ public class MainGUI extends JFrame {
             }
             
             students.add(newStudent);
+            // Update static counter
+            Student.totalStudents = students.getAll().size();
             JOptionPane.showMessageDialog(this, "Student added successfully!\nTotal Students: " + Student.totalStudents);
         }
     }
     
-    private void viewAllStudentsGUI() {
+    private void removeStudentGUI() {
         if (students.getAll().isEmpty()) {
-            JOptionPane.showMessageDialog(this, "No students registered.", "Students", JOptionPane.INFORMATION_MESSAGE);
+            JOptionPane.showMessageDialog(this, "No students to remove.", "Remove Student", JOptionPane.INFORMATION_MESSAGE);
             return;
         }
         
-        String[] columns = {"ID", "Name", "Program"};
-        Object[][] data = new Object[students.getAll().size()][3];
-        
+        // Create an array of student options
+        String[] studentOptions = new String[students.getAll().size()];
         for (int i = 0; i < students.getAll().size(); i++) {
             Student s = students.getAll().get(i);
-            data[i][0] = s.getStudentId();
-            data[i][1] = s.getName();
-            data[i][2] = s.getProgram();
+            studentOptions[i] = s.getStudentId() + " - " + s.getName() + " (" + s.getProgram() + ")";
         }
         
-        JTable table = new JTable(data, columns);
-        JScrollPane scrollPane = new JScrollPane(table);
-        scrollPane.setPreferredSize(new Dimension(500, 300));
+        // Show dialog to select student to remove
+        String selectedStudent = (String) JOptionPane.showInputDialog(this, 
+            "Select Student to Remove:", "Remove Student", 
+            JOptionPane.QUESTION_MESSAGE, null, studentOptions, studentOptions[0]);
         
-        JOptionPane.showMessageDialog(this, scrollPane, "All Students", JOptionPane.PLAIN_MESSAGE);
+        if (selectedStudent == null) return; // User cancelled
+        
+        // Extract student ID from selection
+        String studentId = selectedStudent.split(" - ")[0];
+        
+        // Confirm removal
+        int confirm = JOptionPane.showConfirmDialog(this, 
+            "Are you sure you want to remove student: " + selectedStudent + "?\n\n" +
+            "Warning: This will also remove all their course registrations, results, and complaints!",
+            "Confirm Removal", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+        
+        if (confirm == JOptionPane.YES_OPTION) {
+            // Find the student
+            Student studentToRemove = null;
+            for (Student s : students.getAll()) {
+                if (s.getStudentId().equals(studentId)) {
+                    studentToRemove = s;
+                    break;
+                }
+            }
+            
+            if (studentToRemove != null) {
+                // Remove the student
+                students.getAll().remove(studentToRemove);
+                
+                // Update static counter
+                Student.totalStudents = students.getAll().size();
+                
+                // Check if current logged in student is being removed
+                if (currentStudent != null && currentStudent.getStudentId().equals(studentId)) {
+                    currentStudent = null;
+                    JOptionPane.showMessageDialog(this, 
+                        "Student removed successfully!\n\n" +
+                        "Note: This student was logged in and has been logged out.\n" +
+                        "Total Students: " + Student.totalStudents,
+                        "Student Removed", JOptionPane.INFORMATION_MESSAGE);
+                } else {
+                    JOptionPane.showMessageDialog(this, 
+                        "Student removed successfully!\nTotal Students: " + Student.totalStudents,
+                        "Student Removed", JOptionPane.INFORMATION_MESSAGE);
+                }
+            } else {
+                JOptionPane.showMessageDialog(this, 
+                    "Student not found in the system.",
+                    "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        }
     }
     
     private void addCourseGUI() {
@@ -426,12 +482,141 @@ public class MainGUI extends JFrame {
                 
                 Course newCourse = new Course(code, title, credits, insName, insQual, insId, insPass);
                 courses.add(newCourse);
+                // Update static counter
+                Course.totalCourses = courses.getAll().size();
                 JOptionPane.showMessageDialog(this, "Course added successfully!\nTotal Courses: " + Course.totalCourses);
                 
             } catch (NumberFormatException e) {
                 JOptionPane.showMessageDialog(this, "Invalid credit hours! Enter a number.", "Error", JOptionPane.ERROR_MESSAGE);
             }
         }
+    }
+    
+    private void removeCourseGUI() {
+        if (courses.getAll().isEmpty()) {
+            JOptionPane.showMessageDialog(this, "No courses to remove.", "Remove Course", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+        
+        // Create an array of course options
+        String[] courseOptions = new String[courses.getAll().size()];
+        for (int i = 0; i < courses.getAll().size(); i++) {
+            Course c = courses.getAll().get(i);
+            courseOptions[i] = c.getCourseCode() + " - " + c.getTitle() + " (" + c.getCourseInstructor().getName() + ")";
+        }
+        
+        // Show dialog to select course to remove
+        String selectedCourse = (String) JOptionPane.showInputDialog(this, 
+            "Select Course to Remove:", "Remove Course", 
+            JOptionPane.QUESTION_MESSAGE, null, courseOptions, courseOptions[0]);
+        
+        if (selectedCourse == null) return; // User cancelled
+        
+        // Extract course code from selection
+        String courseCode = selectedCourse.split(" - ")[0];
+        
+        // Find the course
+        Course courseToRemove = null;
+        for (Course c : courses.getAll()) {
+            if (c.getCourseCode().equals(courseCode)) {
+                courseToRemove = c;
+                break;
+            }
+        }
+        
+        if (courseToRemove == null) {
+            JOptionPane.showMessageDialog(this, "Course not found!", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        
+        // Check if any students are enrolled in this course
+        ArrayList<Student> enrolledStudents = getStudentsInCourse(courseToRemove);
+        if (!enrolledStudents.isEmpty()) {
+            int confirm = JOptionPane.showConfirmDialog(this, 
+                "Warning: " + enrolledStudents.size() + " student(s) are enrolled in this course.\n" +
+                "Removing it will also remove their results for this course.\n\n" +
+                "Do you want to proceed?", 
+                "Confirm Removal", 
+                JOptionPane.YES_NO_OPTION, 
+                JOptionPane.WARNING_MESSAGE);
+            
+            if (confirm != JOptionPane.YES_OPTION) {
+                return;
+            }
+            
+            // Remove course from all enrolled students' transcripts
+            for (Student student : enrolledStudents) {
+                removeCourseFromStudent(student, courseCode);
+            }
+        }
+        
+        // Check if the current instructor is logged in for this course
+        if (currentInstructorCourse != null && currentInstructorCourse.getCourseCode().equals(courseCode)) {
+            int confirmLogout = JOptionPane.showConfirmDialog(this,
+                "Warning: The instructor for this course is currently logged in.\n" +
+                "Removing the course will log them out.\n\n" +
+                "Do you want to proceed?",
+                "Instructor Logout Warning",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.WARNING_MESSAGE);
+            
+            if (confirmLogout != JOptionPane.YES_OPTION) {
+                return;
+            }
+        }
+        
+        // Confirm removal
+        int confirmFinal = JOptionPane.showConfirmDialog(this, 
+            "Are you sure you want to remove course: " + selectedCourse + "?\n",
+            "Final Confirmation", 
+            JOptionPane.YES_NO_OPTION, 
+            JOptionPane.QUESTION_MESSAGE);
+        
+        if (confirmFinal == JOptionPane.YES_OPTION) {
+            // Remove the course
+            courses.getAll().remove(courseToRemove);
+            
+            // Update static counter
+            Course.totalCourses = courses.getAll().size();
+            
+            // Logout instructor if they were using this course
+            if (currentInstructorCourse != null && currentInstructorCourse.getCourseCode().equals(courseCode)) {
+                currentInstructorCourse = null;
+                cardLayout.show(mainPanel, "LOGIN");
+                JOptionPane.showMessageDialog(this, 
+                    "Course removed successfully!\n\n" +
+                    "Note: The instructor was logged in and has been logged out.\n" +
+                    "Total Courses: " + Course.totalCourses,
+                    "Course Removed", JOptionPane.INFORMATION_MESSAGE);
+            } else {
+                JOptionPane.showMessageDialog(this, 
+                    "Course removed successfully!\nTotal Courses: " + Course.totalCourses,
+                    "Course Removed", JOptionPane.INFORMATION_MESSAGE);
+            }
+        }
+    }
+    
+    private void viewAllStudentsGUI() {
+        if (students.getAll().isEmpty()) {
+            JOptionPane.showMessageDialog(this, "No students registered.", "Students", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+        
+        String[] columns = {"ID", "Name", "Program"};
+        Object[][] data = new Object[students.getAll().size()][3];
+        
+        for (int i = 0; i < students.getAll().size(); i++) {
+            Student s = students.getAll().get(i);
+            data[i][0] = s.getStudentId();
+            data[i][1] = s.getName();
+            data[i][2] = s.getProgram();
+        }
+        
+        JTable table = new JTable(data, columns);
+        JScrollPane scrollPane = new JScrollPane(table);
+        scrollPane.setPreferredSize(new Dimension(500, 300));
+        
+        JOptionPane.showMessageDialog(this, scrollPane, "All Students", JOptionPane.PLAIN_MESSAGE);
     }
     
     private void viewAllCoursesGUI() {
@@ -542,6 +727,95 @@ public class MainGUI extends JFrame {
                 
             } catch (NumberFormatException e) {
                 JOptionPane.showMessageDialog(this, "Invalid numbers entered!", "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+    
+    // NEW FUNCTION: Remove Course from Student
+    private void removeCourseFromStudentGUI() {
+        if (students.getAll().isEmpty()) {
+            JOptionPane.showMessageDialog(this, "No students registered.", "Error", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        
+        // Select student
+        String[] studentOptions = new String[students.getAll().size()];
+        for (int i = 0; i < students.getAll().size(); i++) {
+            Student s = students.getAll().get(i);
+            studentOptions[i] = s.getStudentId() + " - " + s.getName();
+        }
+        
+        String selectedStudent = (String) JOptionPane.showInputDialog(this, 
+            "Select Student:", "Remove Course", 
+            JOptionPane.QUESTION_MESSAGE, null, studentOptions, studentOptions[0]);
+        
+        if (selectedStudent == null) return;
+        
+        String studentId = selectedStudent.split(" - ")[0];
+        Student student = null;
+        for (Student s : students.getAll()) {
+            if (s.getStudentId().equals(studentId)) {
+                student = s;
+                break;
+            }
+        }
+        
+        if (student == null) return;
+        
+        // Get student's enrolled courses
+        if (student.getTranscript().getResults().isEmpty()) {
+            JOptionPane.showMessageDialog(this, "This student is not enrolled in any courses.", "Info", JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+        
+        // Create list of enrolled courses
+        ArrayList<ResultEntry> enrolledCourses = student.getTranscript().getResults();
+        String[] courseOptions = new String[enrolledCourses.size()];
+        for (int i = 0; i < enrolledCourses.size(); i++) {
+            ResultEntry r = enrolledCourses.get(i);
+            courseOptions[i] = r.getCourse().getCourseCode() + " - " + r.getCourse().getTitle() + 
+                              " (Marks: " + String.format("%.2f", r.getMarksObtained()) + ")";
+        }
+        
+        String selectedCourse = (String) JOptionPane.showInputDialog(this, 
+            "Select Course to Remove:", "Remove Course", 
+            JOptionPane.QUESTION_MESSAGE, null, courseOptions, courseOptions[0]);
+        
+        if (selectedCourse == null) return;
+        
+        String courseCode = selectedCourse.split(" - ")[0];
+        
+        // Confirm removal
+        int confirm = JOptionPane.showConfirmDialog(this, 
+            "Are you sure you want to remove course '" + courseCode + "' from student '" + student.getName() + "'?\n" +
+            "This action cannot be undone.", 
+            "Confirm Removal", 
+            JOptionPane.YES_NO_OPTION, 
+            JOptionPane.WARNING_MESSAGE);
+        
+        if (confirm == JOptionPane.YES_OPTION) {
+            // Find and remove the course
+            boolean removed = false;
+            ArrayList<ResultEntry> results = student.getTranscript().getResults();
+            for (int i = 0; i < results.size(); i++) {
+                ResultEntry r = results.get(i);
+                if (r.getCourse().getCourseCode().equals(courseCode)) {
+                    results.remove(i);
+                    removed = true;
+                    break;
+                }
+            }
+            
+            if (removed) {
+                JOptionPane.showMessageDialog(this, 
+                    "Course '" + courseCode + "' has been successfully removed from student '" + student.getName() + "'.", 
+                    "Success", 
+                    JOptionPane.INFORMATION_MESSAGE);
+            } else {
+                JOptionPane.showMessageDialog(this, 
+                    "Failed to remove course. Course not found.", 
+                    "Error", 
+                    JOptionPane.ERROR_MESSAGE);
             }
         }
     }
@@ -939,6 +1213,18 @@ public class MainGUI extends JFrame {
             }
         }
         return list;
+    }
+    
+    private void removeCourseFromStudent(Student student, String courseCode) {
+        ArrayList<ResultEntry> resultsToRemove = new ArrayList<>();
+        
+        for (ResultEntry r : student.getTranscript().getResults()) {
+            if (r.getCourse().getCourseCode().equals(courseCode)) {
+                resultsToRemove.add(r);
+            }
+        }
+        
+        student.getTranscript().getResults().removeAll(resultsToRemove);
     }
     
     private ResultEntry getResultEntryForCourse(Student student, Course course) {

@@ -26,7 +26,6 @@ public class Main {
             System.out.println("1. Student Login");
             System.out.println("2. Instructor Login");
             System.out.println("3. Admin Panel");
-            System.out.println("4. View System Stats");
             System.out.println("0. Exit & Save");
             System.out.print("Select: ");
             int a = sc.nextInt();
@@ -40,7 +39,6 @@ public class Main {
                 case 1 -> studentLogin(); // line 390
                 case 2 -> instructorLogin(); // line 492
                 case 3 -> adminPanel(); // line 78
-                case 4 -> viewSystemStats(); // line 360
                 default -> System.out.println("Invalid input! Try again.");
             }
         }
@@ -95,30 +93,37 @@ public class Main {
             System.out.println("||  ADMIN PANEL  ||");
             System.out.println("--------------------");
             System.out.println("1. Add New Student");
-            System.out.println("2. Add New Course");
-            System.out.println("3. View All Students");
-            System.out.println("4. View All Courses");
+            System.out.println("2. Remove Student");
+            System.out.println("3. Add New Course");
+            System.out.println("4. Remove Course");
             System.out.println("5. Assign Course to Student");
-            System.out.println("6. Remove Student");
-            System.out.println("7. Remove Course");
-            System.out.println("8. View Student Complaints");
-            System.out.println("9. Save Data Now");
-            System.out.println("0. Back to Main Menu");
+            System.out.println("6. Remove Course from Student");
+            System.out.println("7. View All Students");
+            System.out.println("8. View All Courses");
+            System.out.println("9. View Student Complaints");
+            System.out.println("10. View System Stats");
+            System.out.println("11. Save Data Now");
+            System.out.println("0. Logout");
             System.out.print("Select: ");
             int choice = sc.nextInt();
             sc.nextLine();
 
             switch (choice) {
                 case 1 -> addNewStudent(); // Line 122
-                case 2 -> addNewCourse(); // Line 157
-                case 3 -> viewAllStudents(); // Line 195
-                case 4 -> viewAllCourses(); // Line 208
-                case 5 -> assignCourseToStudent(); // Line 222
-                case 6 -> removeStudent(); // Line 271
-                case 7 -> removeCourse(); // Line 293
-                case 8 -> viewAllComplaints(); // Line 334
-                case 9 -> saveData(); // Line 70
-                case 0 -> running = false;
+                case 2 -> removeStudent(); // Line 157
+                case 3 -> addNewCourse(); // Line 220
+                case 4 -> removeCourse(); // Line 283
+                case 5 -> assignCourseToStudent(); // Line 349
+                case 6 -> removeCourseFromStudent(); // Line 410
+                case 7 -> viewAllStudents(); // Line 472
+                case 8 -> viewAllCourses(); // Line 485
+                case 9 -> viewAllComplaints(); // Line 498
+                case 10 -> viewSystemStats(); // Line 521
+                case 11 -> saveData(); // Line 70
+                case 0 -> {
+                    System.out.println("Logged out.");
+                    running = false;
+                }
                 default -> System.out.println("Invalid choice!");
             }
         }
@@ -159,6 +164,47 @@ public class Main {
         System.out.println("Student added successfully! Total students: " + Student.totalStudents);
     }
 
+    public static void removeStudent() {
+        System.out.print("Enter student ID to remove: ");
+        String id = sc.nextLine();
+        
+        Student student = findStudentById(id);
+        if (student == null) {
+            System.out.println("Student not found!");
+            return;
+        }
+
+        System.out.println("\nStudent Details:");
+        System.out.println("ID: " + student.getStudentId());
+        System.out.println("Name: " + student.getName());
+        System.out.println("Program: " + student.getProgram());
+        System.out.println("Enrolled Courses: " + student.getTranscript().getResults().size());
+        
+        // Count complaints
+        int complaintCount = student.getComplaints().size();
+        System.out.println("Complaints Submitted: " + complaintCount);
+        
+        System.out.print("\nAre you sure? This will also remove all their course registrations, results, and complaints! (Y/N): ");
+        String confirm = sc.nextLine();
+        
+        if (confirm.equalsIgnoreCase("Y")) {
+            // Remove the student
+            for (int i = 0; i < students.getAll().size(); i++) {
+                if (students.getAll().get(i).getStudentId().equalsIgnoreCase(id)) {
+                    students.getAll().remove(i);
+                    break;
+                }
+            }
+            
+            // Update static counter
+            Student.totalStudents = students.getAll().size();
+            System.out.println("\nStudent removed successfully!");
+            System.out.println("Total Students: " + Student.totalStudents);
+        } else {
+            System.out.println("Operation cancelled.");
+        }
+    }
+
     public static void addNewCourse() {
         System.out.print("Enter course code: ");
         String code = sc.nextLine();
@@ -197,30 +243,69 @@ public class Main {
         System.out.println("Course added successfully! Total courses: " + Course.totalCourses);
     }
 
-    public static void viewAllStudents() {
-        System.out.println("\nALL STUDENTS.");
-        if (students.getAll().isEmpty()) {
-            System.out.println("No students registered.");
-            return;
-        }
-
-        for (Student s : students.getAll()) {
-            System.out.println("ID: " + s.getStudentId() + " | Name: " + s.getName() + 
-                             " | Program: " + s.getProgram());
-        }
-    }
-
-    public static void viewAllCourses() {
-        System.out.println("\nALL COURSES.");
-        if (courses.getAll().isEmpty()) {
-            System.out.println("No courses available.");
-            return;
-        }
-
+    public static void removeCourse() {
+        System.out.print("Enter course code to remove: ");
+        String code = sc.nextLine();
+        
+        Course courseToRemove = null;
         for (Course c : courses.getAll()) {
-            System.out.println("Code: " + c.getCourseCode() + " | Title: " + c.getTitle() + 
-                             " | Credits: " + c.getCreditHours() + 
-                             " | Instructor: " + c.getCourseInstructor().getName());
+            if (c.getCourseCode().equalsIgnoreCase(code)) {
+                courseToRemove = c;
+                break;
+            }
+        }
+
+        if (courseToRemove == null) {
+            System.out.println("Course not found!");
+            return;
+        }
+
+        // Show course details
+        System.out.println("\nCourse Details:");
+        System.out.println("Code: " + courseToRemove.getCourseCode());
+        System.out.println("Title: " + courseToRemove.getTitle());
+        System.out.println("Instructor: " + courseToRemove.getCourseInstructor().getName());
+        
+        // Check how many students are enrolled
+        ArrayList<Student> enrolledStudents = getStudentsInCourse(courseToRemove);
+        System.out.println("Enrolled Students: " + enrolledStudents.size());
+        
+        if (!enrolledStudents.isEmpty()) {
+            System.out.println("\nWarning: " + enrolledStudents.size() + " student(s) are enrolled in this course.");
+            System.out.println("Removing it will also remove their results for this course.");
+            
+            System.out.print("\nDo you want to proceed? (Y/N): ");
+            String confirm = sc.nextLine();
+            
+            if (!confirm.equalsIgnoreCase("Y")) {
+                System.out.println("Operation cancelled.");
+                return;
+            }
+            
+            // Remove course from all enrolled students' transcripts
+            for (Student student : enrolledStudents) {
+                removeCourseFromStudent(student, code);
+            }
+        }
+        
+        System.out.print("\nAre you sure you want to remove this course? (Y/N): ");
+        String finalConfirm = sc.nextLine();
+        
+        if (finalConfirm.equalsIgnoreCase("Y")) {
+            // Remove the course
+            for (int i = 0; i < courses.getAll().size(); i++) {
+                if (courses.getAll().get(i).getCourseCode().equalsIgnoreCase(code)) {
+                    courses.getAll().remove(i);
+                    break;
+                }
+            }
+            
+            // Update static counter
+            Course.totalCourses = courses.getAll().size();
+            System.out.println("\nCourse removed successfully!");
+            System.out.println("Total Courses: " + Course.totalCourses);
+        } else {
+            System.out.println("Operation cancelled.");
         }
     }
 
@@ -273,66 +358,92 @@ public class Main {
         System.out.println("Course assigned successfully!");
     }
 
-    public static void removeStudent() {
-        System.out.print("Enter student ID to remove: ");
-        String id = sc.nextLine();
+    public static void removeCourseFromStudent() {
+        System.out.print("Enter student ID: ");
+        String stuId = sc.nextLine();
+        Student student = findStudentById(stuId);
         
-        Student student = findStudentById(id); // Line 483
         if (student == null) {
             System.out.println("Student not found!");
             return;
         }
-
-        System.out.print("Are you sure? (Y/N): ");
+        
+        // Get student's enrolled courses
+        if (student.getTranscript().getResults().isEmpty()) {
+            System.out.println("This student is not enrolled in any courses.");
+            return;
+        }
+        
+        System.out.println("\nStudent: " + student.getName() + " (" + student.getStudentId() + ")");
+        System.out.println("Enrolled Courses:");
+        
+        // Display enrolled courses
+        ArrayList<ResultEntry> enrolledCourses = student.getTranscript().getResults();
+        for (int i = 0; i < enrolledCourses.size(); i++) {
+            ResultEntry r = enrolledCourses.get(i);
+            System.out.println((i + 1) + ". " + r.getCourse().getCourseCode() + " - " + 
+                             r.getCourse().getTitle() + " (Marks: " + 
+                             String.format("%.2f", r.getMarksObtained()) + ")");
+        }
+        
+        System.out.print("\nEnter the number of the course to remove: ");
+        int choice;
+        try {
+            choice = sc.nextInt();
+            sc.nextLine();
+        } catch (Exception e) {
+            System.out.println("Invalid input!");
+            sc.nextLine();
+            return;
+        }
+        
+        if (choice < 1 || choice > enrolledCourses.size()) {
+            System.out.println("Invalid choice!");
+            return;
+        }
+        
+        ResultEntry selectedResult = enrolledCourses.get(choice - 1);
+        String courseCode = selectedResult.getCourse().getCourseCode();
+        String courseTitle = selectedResult.getCourse().getTitle();
+        
+        System.out.print("\nAre you sure you want to remove course '" + courseCode + 
+                       "' from student '" + student.getName() + "'? (Y/N): ");
         String confirm = sc.nextLine();
         
         if (confirm.equalsIgnoreCase("Y")) {
-            students.remove(id);
-            Student.totalStudents--;
-            System.out.println("Student removed successfully!");
+            // Remove the course
+            enrolledCourses.remove(choice - 1);
+            System.out.println("\nCourse '" + courseCode + "' has been successfully removed from student '" + 
+                             student.getName() + "'.");
         } else {
             System.out.println("Operation cancelled.");
         }
     }
 
-    public static void removeCourse() {
-        System.out.print("Enter course code to remove: ");
-        String code = sc.nextLine();
-        
-        boolean found = false;
-        for (Course c : courses.getAll()) {
-            if (c.getCourseCode().equalsIgnoreCase(code)) {
-                found = true;
-                break;
-            }
-        }
-
-        if (!found) {
-            System.out.println("Course not found!");
+    public static void viewAllStudents() {
+        System.out.println("\nALL STUDENTS.");
+        if (students.getAll().isEmpty()) {
+            System.out.println("No students registered.");
             return;
         }
 
-        System.out.print("Are you sure? This will remove course from all students. (Y/N): ");
-        String confirm = sc.nextLine();
-        
-        if (confirm.equalsIgnoreCase("Y")) {
-            courses.remove(code);
-            Course.totalCourses--;
-            
-            // Remove course from all students' transcripts
-            for (Student s : students.getAll()) {
-                ArrayList<ResultEntry> toRemove = new ArrayList<>();
-                for (ResultEntry r : s.getTranscript().getResults()) {
-                    if (r.getCourse().getCourseCode().equalsIgnoreCase(code)) {
-                        toRemove.add(r);
-                    }
-                }
-                s.getTranscript().getResults().removeAll(toRemove); // method from Collection interface inherited by Arraylist
-            }
-            
-            System.out.println("Course removed successfully!");
-        } else {
-            System.out.println("Operation cancelled.");
+        for (Student s : students.getAll()) {
+            System.out.println("ID: " + s.getStudentId() + " | Name: " + s.getName() + 
+                             " | Program: " + s.getProgram());
+        }
+    }
+
+    public static void viewAllCourses() {
+        System.out.println("\nALL COURSES.");
+        if (courses.getAll().isEmpty()) {
+            System.out.println("No courses available.");
+            return;
+        }
+
+        for (Course c : courses.getAll()) {
+            System.out.println("Code: " + c.getCourseCode() + " | Title: " + c.getTitle() + 
+                             " | Credits: " + c.getCreditHours() + 
+                             " | Instructor: " + c.getCourseInstructor().getName());
         }
     }
 
@@ -360,23 +471,20 @@ public class Main {
         }
     }
 
-    // SYSTEM STATISTICS =========================================================================
-
-
     public static void viewSystemStats() {
         System.out.println();
-        System.out.println("-------------------");
+        System.out.println("-------------------------");
         System.out.println("||  SYSTEM STATISTICS  ||");
-        System.out.println("--------------------");
+        System.out.println("-------------------------");
         System.out.println("Total Students: " + Student.totalStudents);
         System.out.println("Total Courses: " + Course.totalCourses);
         System.out.println("Pass Marks: " + ResultCalculator.passMarks);
         
         if (!students.getAll().isEmpty()) {
             System.out.println();
-            System.out.println("-------------------");
+            System.out.println("----------------------------");
             System.out.println("||  STUDENT DISTRIBUTION  ||");
-            System.out.println("--------------------");
+            System.out.println("----------------------------");
             int science = 0;
             int arts = 0;
             int engineering = 0;
@@ -726,5 +834,17 @@ public class Main {
             }
         }
         System.out.println("Student not found in this course.");
+    }
+
+    public static void removeCourseFromStudent(Student student, String courseCode) {
+        ArrayList<ResultEntry> resultsToRemove = new ArrayList<>();
+        
+        for (ResultEntry r : student.getTranscript().getResults()) {
+            if (r.getCourse().getCourseCode().equalsIgnoreCase(courseCode)) {
+                resultsToRemove.add(r);
+            }
+        }
+        
+        student.getTranscript().getResults().removeAll(resultsToRemove);
     }
 }
