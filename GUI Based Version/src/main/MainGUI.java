@@ -39,7 +39,7 @@ public class MainGUI extends JFrame {
         loadData();
         
         // Setup frame
-        setTitle("Student Result Management System");
+        setTitle("University Portal");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(800, 600);
         setLocationRelativeTo(null);
